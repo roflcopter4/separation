@@ -1,3 +1,4 @@
+# vim: sw=2
 
 # AUTHOR: RoflCopter4
 # BUGS: For whatever reason, on the first time the prompt is displayed after
@@ -18,14 +19,12 @@ function _Disp_HBAR
   end
 end
 
-function _Disp_RetStatus
-  if not [ $prev_status -eq 0 ]
-    set_color normal
-    set_color red
-    echo -n $prev_status
-    set_color normal
-    echo -n ':'
-  end
+function _Disp_RetStatus -a prev_status
+  set_color normal
+  set_color red
+  echo -n $prev_status
+  set_color blue
+  echo -n ':'
 end
 
 
@@ -34,7 +33,7 @@ end
 
 function fish_prompt
   # Cache the status
-  set -g prev_status $status
+  set -l prev_status $status
 
   # Setup a few special characters
   set -l UpperLeft  '┌'
@@ -77,7 +76,9 @@ function fish_prompt
   echo -n '('
 
   # Display the return status of the previous command if it was not 0
-  _Disp_RetStatus
+  if not [ $prev_status -eq 0 ]
+    _Disp_RetStatus $prev_status
+  end
 
   # Display username in red if root or fakeroot, and green otherwise.
   # Might as well also determine which prompt character to display later.
@@ -89,9 +90,9 @@ function fish_prompt
     set_color green
     if [ "$csh_junkie" ]
       set Prompt_Char '% '
-      else
-        set Prompt_Char '$ '
-      end
+    else
+      set Prompt_Char '$ '
+    end
   end
   echo -n $USER
 
