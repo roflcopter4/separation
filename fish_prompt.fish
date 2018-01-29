@@ -1,35 +1,9 @@
-# vim: sw=2
+# vim: sw=2 sts=2
 
 # AUTHOR: RoflCopter4
-# BUGS: For whatever reason, on the first time the prompt is displayed after
-#       loading the shell the "$COLUMNS" variable will always equal 78. I
-#       can't fathom why. My (much trickier to implement) zsh prompt does 
-#       not do this.
+# NOTE: All the 'set_color normal' calls throughout are because doing so is
+#       the only way to remove bold formatting from output.
 # ----------------------------------------------------------------------------
-
-
-# Had to do the horizontal bars and the return status in separate functions.
-# For some reason fish just did not like having variables change in the main
-# prompt function and would switch to the fallback prompt every time.
-function _Disp_HBAR
-  set BarWidth (math $COLUMNS - 2)
-  set Hbar '─'
-  for x in (seq $BarWidth)
-    echo -n $Hbar
-  end
-end
-
-function _Disp_RetStatus -a prev_status
-  set_color normal
-  set_color red
-  echo -n $prev_status
-  set_color blue
-  echo -n ':'
-end
-
-
-# ----------------------------------------------------------------------------
-
 
 function fish_prompt
   # Cache the status
@@ -39,13 +13,15 @@ function fish_prompt
   set -l UpperLeft  '┌'
   set -l LowerLeft  '└'
   set -l UpperRight '┐'
+  set -l barChar '─'
+  #set -l BarChar '-'
 
   # Could have also used these more rounded characters...
   #set -l UpperLeft  '╭'
   #set -l LowerLeft  '╰'
 
   if [ $Use_Fish_PWD ]
-    set _Prompt_PWD (prompt_pwd)
+   set _Prompt_PWD (prompt_pwd)
   else
     # Get the FULL prompt
     set _Prompt_PWD (pwd | sed "s|$HOME|~|")
@@ -65,24 +41,31 @@ function fish_prompt
   # ------------------------------------------------------------------------
 
   # Display the horizontal bar
+  set -l hBar $UpperLeft
+  set -l BarWidth (math $COLUMNS - 2)
+  for x in (seq $BarWidth)
+    set hBar $hBar$barChar
+  end
+  set hBar $hBar$UpperRight
+
   set_color -o blue
-  echo -n $UpperLeft
-  _Disp_HBAR
-  echo $UpperRight
+  echo $hBar
 
   # Display the lead in to the prompt
-  echo -n $LowerLeft
-  #echo -n '─'
-  echo -n '('
+  echo -n $LowerLeft"("
 
   # Display the return status of the previous command if it was not 0
   if not [ $prev_status -eq 0 ]
-    _Disp_RetStatus $prev_status
+    set_color normal
+    set_color red
+    echo -n $prev_status
+    set_color blue
+    echo -n ':'
   end
 
   # Display username in red if root or fakeroot, and green otherwise.
   # Might as well also determine which prompt character to display later.
-  if test $USER = root -o $USER = toor
+  if [ $USER = root -o $USER = toor ]
     set_color -o red
     set Prompt_Char '# '
   else
@@ -108,19 +91,17 @@ function fish_prompt
   echo -n ') '
 
   # Display the working directory
+  # If the prompt is too big include a newline, otherwise add a space.
   set_color normal
   set_color magenta
-  echo -n $_Prompt_PWD
-
-  # If the prompt is too big, echo an empty line
   if [ $Prompt_Size -gt $MaxPromptSize ]
-    echo ''
+    echo $_Prompt_PWD
   else
-    echo -n ' '
+    echo -n $_Prompt_PWD" "
   end
 
+  # Reset colors, display the appropriate prompt character, and we're done.
   set_color normal
   echo -n $Prompt_Char
 end
-
 
